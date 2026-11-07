@@ -5,7 +5,8 @@ export default function Home() {
     <main className="mx-auto max-w-5xl px-6 py-16">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-2 font-semibold">
-          <span className="inline-block h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500 to-fuchsia-500" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon.svg" alt="Cutout Studio" className="h-7 w-7" />
           Cutout Studio
         </div>
         <Link

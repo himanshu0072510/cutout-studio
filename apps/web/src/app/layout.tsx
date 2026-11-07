@@ -5,11 +5,18 @@ export const metadata: Metadata = {
   title: "Cutout Studio — Free background remover & photo editor",
   description:
     "Remove backgrounds, replace them, crop, adjust, and export — free, private, runs in your browser. No upload, no signup.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
   openGraph: {
     title: "Cutout Studio",
     description: "Free, private background remover & photo editor that runs in your browser.",
     type: "website",
+    images: ["/icon.svg"],
   },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

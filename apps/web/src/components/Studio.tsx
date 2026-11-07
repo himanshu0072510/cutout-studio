@@ -465,7 +465,8 @@ export function Studio() {
       <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white/80 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/80">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <a href="/" className="flex items-center gap-2 font-semibold">
-            <span className="inline-block h-6 w-6 rounded-md bg-gradient-to-br from-indigo-500 to-fuchsia-500" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon.svg" alt="Cutout Studio" className="h-6 w-6" />
             Cutout Studio
           </a>
           <div className="flex items-center gap-2">
