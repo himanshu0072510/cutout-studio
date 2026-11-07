@@ -89,6 +89,9 @@ export function Studio() {
   const [exportFormat, setExportFormat] = useState<ExportFormat>("png");
 
   const [dragOver, setDragOver] = useState(false);
+  const [comparePos, setComparePos] = useState(50);
+  const [showCompare, setShowCompare] = useState(false);
+  const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -397,6 +400,65 @@ export function Studio() {
 
   const subjectUrl = cutoutUrl ?? originalUrl;
 
+  // Clipboard paste support
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const it of Array.from(items)) {
+        if (it.type.startsWith("image/")) {
+          const f = it.getAsFile();
+          if (f) {
+            handleFile(f);
+            e.preventDefault();
+            return;
+          }
+        }
+      }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [handleFile]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (!originalUrl) return;
+      if (e.key === "r" || e.key === "R") setRotation((r) => (r + 90) % 360);
+      if (e.key === "h" || e.key === "H") setFlipH((v) => !v);
+      if (e.key === "v" || e.key === "V") setFlipV((v) => !v);
+      if (e.key === "b" || e.key === "B") {
+        if (!cutoutUrl && !busy) removeBg();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        download();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [originalUrl, cutoutUrl, busy, removeBg, download]);
+
+  const copyToClipboard = useCallback(async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !subjectUrl) return;
+    const ok = await renderToCanvas(canvas);
+    if (!ok) return;
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+        setCopied(true);
+        setStatus("Copied to clipboard.");
+        setTimeout(() => setCopied(false), 1800);
+      } catch {
+        setError("Clipboard not supported in this browser. Use Export instead.");
+      }
+    }, "image/png");
+  }, [renderToCanvas, subjectUrl]);
+
+
   return (
     <div className="min-h-screen">
       {/* Top bar */}
@@ -415,6 +477,13 @@ export function Studio() {
                 <Trash2 className="h-4 w-4" /> Reset
               </button>
             )}
+            <button
+              onClick={copyToClipboard}
+              disabled={!subjectUrl || busy}
+              className="inline-flex items-center gap-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            >
+              {copied ? <Check className="h-4 w-4" /> : <Download className="h-4 w-4" />} {copied ? "Copied" : "Copy"}
+            </button>
             <button
               onClick={download}
               disabled={!subjectUrl || busy}
@@ -465,6 +534,64 @@ export function Studio() {
                 className="relative flex min-h-[420px] items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-[linear-gradient(45deg,#e5e5e5_25%,transparent_25%),linear-gradient(-45deg,#e5e5e5_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#e5e5e5_75%),linear-gradient(-45deg,transparent_75%,#e5e5e5_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0] dark:border-neutral-800 dark:bg-neutral-900"
                 style={{ backgroundSize: "16px 16px" }}
               >
+                {showCompare && originalUrl && cutoutUrl ? (
+                  <div className="relative h-full w-full">
+                    {/* after (result) full */}
+                    <div
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={
+                        bgMode !== "transparent"
+                          ? bgMode === "color"
+                            ? { background: bgColor }
+                            : bgMode === "gradient"
+                            ? { background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})` }
+                            : undefined
+                          : undefined
+                      }
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={cutoutUrl}
+                        alt="after"
+                        className="max-h-[70vh] max-w-full object-contain"
+                        style={{ filter: filterStyle, transform: transformStyle }}
+                      />
+                    </div>
+                    {/* before (original) clipped */}
+                    <div
+                      className="absolute inset-0 flex items-center justify-center overflow-hidden"
+                      style={{ width: `${comparePos}%` }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={originalUrl}
+                        alt="before"
+                        className="max-h-[70vh] max-w-full object-contain"
+                        style={{ filter: "none", transform: "none" }}
+                      />
+                    </div>
+                    {/* divider */}
+                    <div
+                      className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg"
+                      style={{ left: `${comparePos}%` }}
+                    />
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={comparePos}
+                      onChange={(e) => setComparePos(Number(e.target.value))}
+                      className="absolute bottom-4 left-1/2 w-2/3 -translate-x-1/2"
+                    />
+                    <span className="absolute left-4 top-4 rounded bg-black/60 px-2 py-1 text-xs font-semibold text-white">
+                      BEFORE
+                    </span>
+                    <span className="absolute right-4 top-4 rounded bg-black/60 px-2 py-1 text-xs font-semibold text-white">
+                      AFTER
+                    </span>
+                  </div>
+                ) : (
+                  <>
                 {/* background layer for non-transparent modes */}
                 {bgMode !== "transparent" && (
                   <div
@@ -501,6 +628,8 @@ export function Studio() {
                     style={{ filter: filterStyle, transform: transformStyle }}
                   />
                 )}
+                  </>
+                )}
                 {busy && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/40 text-white">
                     <Loader2 className="h-8 w-8 animate-spin" />
@@ -532,6 +661,17 @@ export function Studio() {
 
               {/* BG remove button */}
               <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setShowCompare((v) => !v)}
+                  disabled={!cutoutUrl || busy}
+                  className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium disabled:opacity-50 ${
+                    showCompare
+                      ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300"
+                      : "border-neutral-300 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                  }`}
+                >
+                  Before / After
+                </button>
                 <button
                   onClick={removeBg}
                   disabled={busy || !originalUrl || !!cutoutUrl}
@@ -808,6 +948,8 @@ export function Studio() {
         <a href="mailto:himanshu5179abcd@gmail.com" className="text-indigo-500 hover:underline">
           Email
         </a>
+        <span className="mx-2 text-neutral-300 dark:text-neutral-700">·</span>
+        <span>Shortcuts: R rotate · H flip H · V flip V · B remove bg · ⌘S export · paste image to load</span>
       </footer>
 
       {/* hidden canvas for export */}
