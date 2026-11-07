@@ -797,6 +797,19 @@ export function Studio() {
         )}
       </main>
 
+      <footer className="border-t border-neutral-200 px-4 py-6 text-center text-xs text-neutral-500 dark:border-neutral-800">
+        Built by Himanshu ·{" "}
+        <a href="https://x.com/Himansh95861047" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline">
+          X
+        </a>{" · "}
+        <a href="https://github.com/himanshu0072510/cutout-studio" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline">
+          GitHub
+        </a>{" · "}
+        <a href="mailto:himanshu5179abcd@gmail.com" className="text-indigo-500 hover:underline">
+          Email
+        </a>
+      </footer>
+
       {/* hidden canvas for export */}
       <canvas ref={canvasRef} className="hidden" />
     </div>
